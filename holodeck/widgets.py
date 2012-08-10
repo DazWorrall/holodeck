@@ -1,16 +1,20 @@
 import json
 import time
+import urllib
 
 from django.template.loader import render_to_string
-
 
 class Widget(object):
     def get_context(self, metric):
         return NotImplementedError
 
     def get_groups(self, metric):
-        return [group['string_value'] for group in
-                metric.sample_set.all().values('string_value').distinct()]
+        if metric.url:
+            data = urllib.urlopen(metric.url).read()
+            return set([group['target'] for group in json.loads(data)])
+        else:
+            return [group['string_value'] for group in
+                    metric.sample_set.all().values('string_value').distinct()]
 
     def render(self, metric):
         context = self.get_context(metric)
@@ -39,14 +43,14 @@ class LineChart(Widget):
         for group in groups:
             samples = [(int(time.mktime(sample.timestamp.timetuple()) * 1000),
                         sample.integer_value)
-                       for sample in metric.sample_set.filter(
-                           string_value=group
-                       ).order_by('-timestamp')[:sample_count]]
+                       for sample in metric.get_samples(
+                           group=group,
+                           sample_count=sample_count,
+                       )[:sample_count]]
             grouped_samples.append((group, samples))
             group_maxes.append(max([sample[1] for sample in samples]))
         samples = json.dumps([{'label': group[0], 'data': group[1]}
                               for group in grouped_samples])
-
         context.update({
             'samples': samples,
             'y_max': max(group_maxes) * 1.025,
