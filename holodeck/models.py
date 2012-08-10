@@ -61,7 +61,7 @@ class Metric(models.Model):
                 metric = self,
             ) for d in data for s in d['datapoints']
         ]
-        self.data_cache = data
+        self.data_cache = sorted(data, key=lambda s: s.timestamp)
         return self.data_cache
 
     def get_samples(self, group, sample_count):
@@ -70,7 +70,7 @@ class Metric(models.Model):
                 string_value=group
             ).order_by('-timestamp')[:sample_count]
         data = self._load_url_data()
-        return [s for s in data if s.string_value == group][:sample_count]
+        return [s for s in data if s.string_value == group][::-1][:sample_count]
 
 
 class Sample(models.Model):

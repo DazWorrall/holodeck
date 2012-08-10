@@ -46,7 +46,7 @@ class LineChart(Widget):
                        for sample in metric.get_samples(
                            group=group,
                            sample_count=sample_count,
-                       )[:sample_count]]
+                       )]
             grouped_samples.append((group, samples))
             group_maxes.append(max([sample[1] for sample in samples]))
         samples = json.dumps([{'label': group[0], 'data': group[1]}
